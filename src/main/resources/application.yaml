@@ -1,3 +1,29 @@
 spring:
   application:
     name: riido-chatbot-backend
+    jpa:
+      open-in-view: false
+
+  profiles:
+    active: local
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        default_schema: app
+        format_sql: true
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
