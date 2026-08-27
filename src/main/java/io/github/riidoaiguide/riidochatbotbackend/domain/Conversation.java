@@ -1,0 +1,57 @@
+package io.github.riidoaiguide.riidochatbotbackend.domain;
+
+import jakarta.persistence.*;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "conversations")
+public class Conversation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 200)
+    private String title;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private List<Message> messages = new ArrayList<>();
+
+    protected Conversation() {
+    }
+
+    public Conversation(String title) {
+        this.title = title;
+        this.createdAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    public Message addMessage(Role role, String content) {
+        Message message = new Message(this, role, content);
+        messages.add(message);
+        return message;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+}

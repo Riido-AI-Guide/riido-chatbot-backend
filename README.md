@@ -41,7 +41,36 @@ cp src/main/resources/application-local.yaml.example src/main/resources/applicat
 
 ## API
 
-`POST /api/chat`
+### `POST /conversations`
+
+새 대화를 시작합니다. 질문을 AI 서버에 전달해 답변을 받고, 대화와 메시지 2건(user/assistant)을 DB에 저장한 뒤 `201 Created`로 반환합니다.
+
+요청
+
+```json
+{ "query": "ERD 먼저 짜는 게 나을까?" }
+```
+
+응답 (`201`, `Location: /conversations/{conversationId}`)
+
+```json
+{
+  "conversationId": 12,
+  "title": "ERD 먼저 짜는 게 나을까?",
+  "messages": [
+    { "id": 45, "role": "user", "content": "ERD 먼저 짜는 게 나을까?", "createdAt": "2026-08-24T14:20:01Z" },
+    { "id": 46, "role": "assistant", "content": "설명", "createdAt": "2026-08-24T14:20:09Z" }
+  ]
+}
+```
+
+- `title`은 최초 질문(최대 200자)입니다.
+- `createdAt`은 UTC ISO-8601(초 단위)입니다.
+- `query`가 비어 있으면 `400`, AI 서버 호출에 실패하면 `500`을 반환합니다.
+
+### `POST /api/chat`
+
+대화를 저장하지 않고 AI 답변과 참고 문서만 받아오는 단발성 엔드포인트입니다.
 
 ```json
 { "query": "리도 사용법 알려줘" }
