@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://<HOST>:<PORT>/<DATABASE>?sslmode=require&currentSchema=app"
+    username: "<USERNAME>"
+    password: "<PASSWORD>"

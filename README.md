@@ -1,0 +1,57 @@
+# riido-chatbot-backend
+
+리도 AI 가이드 챗봇의 백엔드 서버입니다. 프론트엔드의 질문을 받아 AI 서버(`/api/v1/ask`)에 전달하고, 답변과 참고 문서를 반환합니다.
+
+- Java 25 / Spring Boot 4.1.1 / PostgreSQL
+
+## 로컬 실행 방법
+
+### 1. 설정 파일 준비
+
+`src/main/resources/application-local.yaml.example`을 복사해서 `application-local.yaml`로 이름을 변경합니다.
+
+```bash
+cp src/main/resources/application-local.yaml.example src/main/resources/application-local.yaml
+```
+
+### 2. 접속 정보 채우기
+
+`application-local.yaml`의 `<HOST>`, `<PORT>`, `<DATABASE>`, `<USERNAME>`, `<PASSWORD>` 자리에 DB 접속 정보를 입력합니다. 접속 정보는 팀 채널에서 확인하세요.
+
+> `application-local.yaml`은 `.gitignore`에 등록되어 있어 커밋되지 않습니다. 실제 접속 정보를 `.example` 파일이나 `application.yaml`에 넣지 마세요.
+
+### 3. 빌드
+
+```bash
+./gradlew clean build -x test
+```
+
+### 4. 실행
+
+```bash
+./gradlew bootRun
+```
+
+서버는 `http://localhost:8080`에서 뜹니다. (`local` 프로파일이 기본 활성화)
+
+## 참고
+
+- AI 서버 주소는 `application.yaml`의 `app.ai.base-url`에서 설정합니다. 기본값은 `http://localhost:8000`이며, 챗봇 API를 호출하려면 AI 서버가 함께 실행 중이어야 합니다.
+- CORS 허용 오리진은 `app.cors.allowed-origin`에서 설정합니다. 기본값은 `http://localhost:5173`입니다.
+
+## API
+
+`POST /api/chat`
+
+```json
+{ "query": "리도 사용법 알려줘" }
+```
+
+```json
+{
+  "answer": "...",
+  "sources": [
+    { "docId": "guide/...", "title": "프로젝트 일정 자동 생성", "section": "..." }
+  ]
+}
+```
