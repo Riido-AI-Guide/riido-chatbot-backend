@@ -1,9 +1,6 @@
 spring:
   application:
     name: riido-chatbot-backend
-    jpa:
-      open-in-view: false
-
   profiles:
     active: local
 
@@ -16,6 +13,7 @@ spring:
     hibernate:
       ddl-auto: create
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         default_schema: app
@@ -23,7 +21,11 @@ spring:
 
 server:
   port: 8080
-  servlet:
-    encoding:
-      charset: UTF-8
-      force: true
+
+app:
+  ai:
+    base-url: http://localhost:8000
+    connect-timeout: 5s
+    read-timeout: 60s
+  cors:
+    allowed-origin: http://localhost:5173
