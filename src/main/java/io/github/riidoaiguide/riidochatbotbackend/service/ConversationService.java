@@ -1,8 +1,10 @@
 package io.github.riidoaiguide.riidochatbotbackend.service;
 
 import io.github.riidoaiguide.riidochatbotbackend.domain.Conversation;
+import io.github.riidoaiguide.riidochatbotbackend.domain.Message;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Role;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskResponse;
+import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.web.server.ResponseStatusException;
@@ -19,6 +22,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class ConversationService {
 
     private static final int MAX_TITLE_LENGTH = 200;
+
+    // AI에 보낼 이전 대화 상한. AI 쪽 사용 상한(history_turns=5)과 맞춤
+    private static final int MAX_HISTORY_PAIRS = 5;
 
     private final ChatService chatService;
     private final ConversationRepository conversationRepository;
@@ -53,6 +59,43 @@ public class ConversationService {
         conversationRepository.flush();
 
         return ConversationResponse.from(conversation);
+    }
+
+    /** 기존 대화에 이어서 질문한다. 이전 대화를 AI에 함께 보내 대명사·생략을 풀게 한다. */
+    @Transactional
+    public ConversationResponse append(Long conversationId, String query) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "존재하지 않는 대화입니다: " + conversationId));
+
+        List<ConversationTurnDto> history = toHistory(conversation);
+        AskResponse ai = chatService.ask(query, history, String.valueOf(conversationId));
+
+        conversation.addMessage(Role.USER, query);
+        conversation.addMessage(Role.ASSISTANT, ai.answer());
+        conversationRepository.flush();
+
+        return ConversationResponse.from(conversation);
+    }
+
+    /** 기존 메시지들을 질문-답변 쌍으로 묶어 최근 MAX_HISTORY_PAIRS쌍만 남긴다. */
+    private List<ConversationTurnDto> toHistory(Conversation conversation) {
+        List<ConversationTurnDto> pairs = new ArrayList<>();
+        String pendingQuestion = null;
+
+        for (Message message : conversation.getMessages()) {
+            if (message.getRole() == Role.USER) {
+                pendingQuestion = message.getContent();
+            } else if (pendingQuestion != null) {
+                pairs.add(new ConversationTurnDto(pendingQuestion, message.getContent()));
+                pendingQuestion = null;
+            }
+        }
+
+        if (pairs.size() > MAX_HISTORY_PAIRS) {
+            return new ArrayList<>(pairs.subList(pairs.size() - MAX_HISTORY_PAIRS, pairs.size()));
+        }
+        return pairs;
     }
 
     /** 해당 사용자의 대화 목록, 최신순. 대화가 없으면 빈 목록. */

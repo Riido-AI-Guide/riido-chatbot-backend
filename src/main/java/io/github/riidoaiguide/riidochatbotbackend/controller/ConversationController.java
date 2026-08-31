@@ -39,6 +39,15 @@ public class ConversationController {
         return conversationService.detail(conversationId);
     }
 
+    /** 기존 대화에 이어서 질문 (멀티턴) */
+    @PostMapping("/{conversationId}/messages")
+    public ConversationResponse append(
+            @PathVariable Long conversationId,
+            @Valid @RequestBody ConversationCreateRequest request
+    ) {
+        return conversationService.append(conversationId, request.query());
+    }
+
     @PostMapping
     public ResponseEntity<ConversationResponse> create(@Valid @RequestBody ConversationCreateRequest request) {
         ConversationResponse response = conversationService.create(request.query(), request.userId());
