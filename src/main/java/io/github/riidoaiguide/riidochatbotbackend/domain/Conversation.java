@@ -25,6 +25,11 @@ public class Conversation {
     @OrderBy("id ASC")
     private List<Message> messages = new ArrayList<>();
 
+    // 이 대화를 만든 사용자. 로그인 기능 이전의 대화는 주인이 없으므로 nullable.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     protected Conversation() {
     }
 
@@ -37,6 +42,14 @@ public class Conversation {
         Message message = new Message(this, role, content);
         messages.add(message);
         return message;
+    }
+
+    public void assignUser(User user) {
+        this.user = user;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     public Long getId() {
