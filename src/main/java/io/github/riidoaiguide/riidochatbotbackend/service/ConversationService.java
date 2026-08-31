@@ -4,10 +4,13 @@ import io.github.riidoaiguide.riidochatbotbackend.domain.Conversation;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Role;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
+import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
 import io.github.riidoaiguide.riidochatbotbackend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class ConversationService {
@@ -47,6 +50,14 @@ public class ConversationService {
         conversationRepository.flush();
 
         return ConversationResponse.from(conversation);
+    }
+
+    /** 해당 사용자의 대화 목록, 최신순. 대화가 없으면 빈 목록. */
+    @Transactional(readOnly = true)
+    public List<ConversationSummaryResponse> list(Long userId) {
+        return conversationRepository.findByUser_IdOrderByIdDesc(userId).stream()
+                .map(ConversationSummaryResponse::from)
+                .toList();
     }
 
     private String toTitle(String query) {
