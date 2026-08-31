@@ -7,6 +7,7 @@ import io.github.riidoaiguide.riidochatbotbackend.service.ConversationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +31,12 @@ public class ConversationController {
     @GetMapping
     public List<ConversationSummaryResponse> list(@RequestParam Long userId) {
         return conversationService.list(userId);
+    }
+
+    /** 대화 상세 (메시지 포함) */
+    @GetMapping("/{conversationId}")
+    public ConversationResponse detail(@PathVariable Long conversationId) {
+        return conversationService.detail(conversationId);
     }
 
     @PostMapping
