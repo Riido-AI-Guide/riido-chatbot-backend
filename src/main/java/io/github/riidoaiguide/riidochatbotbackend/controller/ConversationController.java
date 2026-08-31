@@ -24,7 +24,7 @@ public class ConversationController {
 
     @PostMapping
     public ResponseEntity<ConversationResponse> create(@Valid @RequestBody ConversationCreateRequest request) {
-        ConversationResponse response = conversationService.create(request.query());
+        ConversationResponse response = conversationService.create(request.query(), request.userId());
         return ResponseEntity
                 .created(URI.create("/conversations/" + response.conversationId()))
                 .body(response);
