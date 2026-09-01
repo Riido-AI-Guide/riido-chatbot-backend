@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
+import java.util.List;
 
 @Service
 public class ChatService {
@@ -45,7 +46,7 @@ public class ChatService {
     }
 
     /** 후속 대화 — 이전 대화(최근 몇 쌍)를 함께 보내 대명사·생략을 풀 수 있게 한다 */
-    public AskResponse ask(String query, java.util.List<ConversationTurnDto> history, String conversationId) {
+    public AskResponse ask(String query, List<ConversationTurnDto> history, String conversationId) {
         return ask(new AskRequest(query, history, conversationId));
     }
 
@@ -68,7 +69,8 @@ public class ChatService {
             throw new IllegalStateException("AI 서버 응답이 비어 있습니다");
         }
 
-        log.debug("문서 {}건 참조", response.documents() == null ? 0 : response.documents().size());
+        log.debug("답변 유형 {} / 섹션 {}개 / 참조 문서 {}건",
+                response.answerType(), response.answers().size(), response.documents().size());
         return response;
     }
 }
