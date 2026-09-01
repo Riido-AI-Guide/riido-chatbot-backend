@@ -1,7 +1,6 @@
 package io.github.riidoaiguide.riidochatbotbackend.dto.conversation;
 
 import io.github.riidoaiguide.riidochatbotbackend.domain.Message;
-import io.github.riidoaiguide.riidochatbotbackend.dto.chat.SectionResponse;
 
 import java.time.Instant;
 import java.util.List;
