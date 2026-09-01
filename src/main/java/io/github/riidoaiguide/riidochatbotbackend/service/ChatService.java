@@ -1,6 +1,7 @@
 package io.github.riidoaiguide.riidochatbotbackend.service;
 
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskRequest;
+import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +39,25 @@ public class ChatService {
         log.info("AI 서버 base-url: {}", baseUrl);
     }
 
+    /** 첫 대화 — 히스토리 없이 질문만 보낸다 */
     public AskResponse ask(String query) {
-        log.debug("AI 질의: {}", query);
+        return ask(AskRequest.firstTurn(query));
+    }
+
+    /** 후속 대화 — 이전 대화(최근 몇 쌍)를 함께 보내 대명사·생략을 풀 수 있게 한다 */
+    public AskResponse ask(String query, java.util.List<ConversationTurnDto> history, String conversationId) {
+        return ask(new AskRequest(query, history, conversationId));
+    }
+
+    private AskResponse ask(AskRequest request) {
+        log.debug("AI 질의: {} (히스토리 {}턴)", request.query(), request.history().size());
 
         AskResponse response;
         try {
             response = restClient.post()
                     .uri("/api/v1/ask")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new AskRequest(query))
+                    .body(request)
                     .retrieve()
                     .body(AskResponse.class);
         } catch (RestClientException e) {
