@@ -17,12 +17,17 @@ public class SourceRef {
     @Column(name = "section", nullable = false, length = 500)
     private String section;
 
+    // 근거 버튼에 걸 원문 주소. 링크를 못 붙인 문서는 null이다 (AI는 빈 문자열로 준다).
+    @Column(name = "url", length = 1000)
+    private String url;
+
     protected SourceRef() {
     }
 
-    SourceRef(String docId, String section) {
+    SourceRef(String docId, String section, String url) {
         this.docId = docId;
         this.section = section;
+        this.url = url;
     }
 
     public String getDocId() {
@@ -31,5 +36,9 @@ public class SourceRef {
 
     public String getSection() {
         return section;
+    }
+
+    public String getUrl() {
+        return url;
     }
 }

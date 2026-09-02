@@ -100,7 +100,7 @@ public class ConversationService {
         for (AnswerSectionDto section : ai.answers()) {
             AnswerSection saved = answer.addSection(section.label(), section.text());
             for (SourceRefDto source : section.sources()) {
-                saved.addSource(source.docId(), source.section());
+                saved.addSource(source.docId(), source.section(), blankToNull(source.url()));
             }
         }
     }

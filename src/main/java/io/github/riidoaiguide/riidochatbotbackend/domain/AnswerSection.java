@@ -41,8 +41,8 @@ public class AnswerSection {
         this.text = text;
     }
 
-    public void addSource(String docId, String section) {
-        sources.add(new SourceRef(docId, section));
+    public void addSource(String docId, String section, String url) {
+        sources.add(new SourceRef(docId, section, url));
     }
 
     public Long getId() {

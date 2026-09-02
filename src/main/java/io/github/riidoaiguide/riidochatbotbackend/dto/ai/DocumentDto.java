@@ -11,5 +11,7 @@ public record DocumentDto(
         @JsonProperty("section") String section,
         @JsonProperty("source_type") String sourceType,
         @JsonProperty("ord_idx") int ordIdx,
+        // 원문 주소(docs.riido.io). 링크를 못 붙인 문서는 빈 문자열로 온다.
+        @JsonProperty("url") String url,
         @JsonProperty("content") String content
 ) {}
