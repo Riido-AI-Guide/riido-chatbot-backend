@@ -1,10 +1,13 @@
 package io.github.riidoaiguide.riidochatbotbackend.service;
 
+import io.github.riidoaiguide.riidochatbotbackend.domain.AnswerSection;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Conversation;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Message;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Role;
+import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AnswerSectionDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
+import io.github.riidoaiguide.riidochatbotbackend.dto.ai.SourceRefDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
@@ -26,6 +29,10 @@ public class ConversationService {
     // AI에 보낼 이전 대화 상한. AI 쪽 사용 상한(history_turns=5)과 맞춤
     private static final int MAX_HISTORY_PAIRS = 5;
 
+    // AI 요청 스펙(AskRequest)의 길이 상한. 넘기면 422로 거절당한다
+    private static final int MAX_HISTORY_QUESTION_LENGTH = 1000;
+    private static final int MAX_HISTORY_ANSWER_LENGTH = 4000;
+
     private final ChatService chatService;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
@@ -44,7 +51,9 @@ public class ConversationService {
     public ConversationResponse create(String query, Long userId) {
         AskResponse ai = chatService.ask(query);
 
-        Conversation conversation = new Conversation(toTitle(query));
+        // 대화 제목은 AI가 이번 턴에 붙인 title을 쓴다. 첫 턴이면 비어 오지 않지만,
+        // 그래도 비면 질문 원문으로 대신한다 (제목 없는 대화를 만들지 않기 위해).
+        Conversation conversation = new Conversation(toTitle(ai.title(), query));
 
         // 로그인한 사용자가 보낸 요청이면 대화에 작성자를 연결한다.
         // 모르는 userId면 연결 없이 저장한다 (대화 자체를 잃는 것보다 낫다).
@@ -52,8 +61,8 @@ public class ConversationService {
             userRepository.findById(userId).ifPresent(conversation::assignUser);
         }
 
-        conversation.addMessage(Role.USER, query);
-        conversation.addMessage(Role.ASSISTANT, ai.answer());
+        conversation.addQuestion(query);
+        addAnswer(conversation, ai);
 
         conversationRepository.save(conversation);
         conversationRepository.flush();
@@ -71,11 +80,29 @@ public class ConversationService {
         List<ConversationTurnDto> history = toHistory(conversation);
         AskResponse ai = chatService.ask(query, history, String.valueOf(conversationId));
 
-        conversation.addMessage(Role.USER, query);
-        conversation.addMessage(Role.ASSISTANT, ai.answer());
+        // 대화 제목은 그대로 둔다. 후속 턴의 title은 이번 답변에 붙는 말풍선 제목일 뿐이라
+        // 이것으로 덮어쓰면 대화 제목이 매 턴 바뀐다.
+        conversation.addQuestion(query);
+        addAnswer(conversation, ai);
         conversationRepository.flush();
 
         return ConversationResponse.from(conversation);
+    }
+
+    /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. */
+    private void addAnswer(Conversation conversation, AskResponse ai) {
+        Message answer = conversation.addAnswer(
+                ai.answerText(),
+                blankToNull(cut(ai.title(), MAX_TITLE_LENGTH)),
+                ai.answerType()
+        );
+
+        for (AnswerSectionDto section : ai.answers()) {
+            AnswerSection saved = answer.addSection(section.label(), section.text());
+            for (SourceRefDto source : section.sources()) {
+                saved.addSource(source.docId(), source.section(), blankToNull(source.url()));
+            }
+        }
     }
 
     /** 기존 메시지들을 질문-답변 쌍으로 묶어 최근 MAX_HISTORY_PAIRS쌍만 남긴다. */
@@ -87,7 +114,9 @@ public class ConversationService {
             if (message.getRole() == Role.USER) {
                 pendingQuestion = message.getContent();
             } else if (pendingQuestion != null) {
-                pairs.add(new ConversationTurnDto(pendingQuestion, message.getContent()));
+                pairs.add(new ConversationTurnDto(
+                        cut(pendingQuestion, MAX_HISTORY_QUESTION_LENGTH),
+                        cut(message.getContent(), MAX_HISTORY_ANSWER_LENGTH)));
                 pendingQuestion = null;
             }
         }
@@ -115,8 +144,20 @@ public class ConversationService {
                         HttpStatus.NOT_FOUND, "존재하지 않는 대화입니다: " + conversationId));
     }
 
-    private String toTitle(String query) {
-        String trimmed = query.strip();
-        return trimmed.length() <= MAX_TITLE_LENGTH ? trimmed : trimmed.substring(0, MAX_TITLE_LENGTH);
+    private String toTitle(String aiTitle, String query) {
+        String title = blankToNull(aiTitle) == null ? query : aiTitle;
+        return cut(title.strip(), MAX_TITLE_LENGTH);
+    }
+
+    /** 후속 턴의 인사에는 제목이 빈 문자열로 온다. 제목 없는 답변임을 null로 분명히 해 둔다. */
+    private static String blankToNull(String text) {
+        return text == null || text.isBlank() ? null : text;
+    }
+
+    private static String cut(String text, int maxLength) {
+        if (text == null) {
+            return "";
+        }
+        return text.length() <= maxLength ? text : text.substring(0, maxLength);
     }
 }
