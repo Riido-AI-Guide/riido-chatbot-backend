@@ -10,7 +10,9 @@ import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.SourceRefDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
+import io.github.riidoaiguide.riidochatbotbackend.dto.feedback.MessageFeedbackResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
+import io.github.riidoaiguide.riidochatbotbackend.repository.MessageFeedbackRepository;
 import io.github.riidoaiguide.riidochatbotbackend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,15 +41,18 @@ public class ConversationService {
     private final ChatService chatService;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
+    private final MessageFeedbackRepository feedbackRepository;
 
     public ConversationService(
             ChatService chatService,
             ConversationRepository conversationRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            MessageFeedbackRepository feedbackRepository
     ) {
         this.chatService = chatService;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
+        this.feedbackRepository = feedbackRepository;
     }
 
     @Transactional
@@ -84,7 +92,7 @@ public class ConversationService {
         addAnswer(conversation, conversation.addQuestion(query), ai);
         conversationRepository.flush();
 
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
     /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. 답한 질문(question)을 함께 걸어 둔다. */
@@ -139,9 +147,22 @@ public class ConversationService {
     @Transactional(readOnly = true)
     public ConversationResponse detail(Long conversationId) {
         return conversationRepository.findById(conversationId)
-                .map(ConversationResponse::from)
+                .map(this::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 대화입니다: " + conversationId));
+    }
+
+    /** 이미 남긴 평가까지 실어 대화를 내보낸다. 메시지마다 묻지 않도록 평가는 한 번에 읽는다. */
+    private ConversationResponse toResponse(Conversation conversation) {
+        List<Long> messageIds = conversation.getMessages().stream()
+                .map(Message::getId)
+                .toList();
+
+        Map<Long, MessageFeedbackResponse> feedbacks = feedbackRepository.findByMessage_IdIn(messageIds).stream()
+                .map(MessageFeedbackResponse::from)
+                .collect(Collectors.toMap(MessageFeedbackResponse::messageId, Function.identity()));
+
+        return ConversationResponse.from(conversation, feedbacks);
     }
 
     private String toTitle(String aiTitle, String query) {
