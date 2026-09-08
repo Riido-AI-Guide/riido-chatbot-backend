@@ -12,6 +12,7 @@ import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationR
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.feedback.MessageFeedbackResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
+import io.github.riidoaiguide.riidochatbotbackend.repository.MessageBookmarkRepository;
 import io.github.riidoaiguide.riidochatbotbackend.repository.MessageFeedbackRepository;
 import io.github.riidoaiguide.riidochatbotbackend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,17 +44,20 @@ public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
     private final MessageFeedbackRepository feedbackRepository;
+    private final MessageBookmarkRepository bookmarkRepository;
 
     public ConversationService(
             ChatService chatService,
             ConversationRepository conversationRepository,
             UserRepository userRepository,
-            MessageFeedbackRepository feedbackRepository
+            MessageFeedbackRepository feedbackRepository,
+            MessageBookmarkRepository bookmarkRepository
     ) {
         this.chatService = chatService;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
         this.feedbackRepository = feedbackRepository;
+        this.bookmarkRepository = bookmarkRepository;
     }
 
     @Transactional
@@ -152,7 +157,7 @@ public class ConversationService {
                         HttpStatus.NOT_FOUND, "존재하지 않는 대화입니다: " + conversationId));
     }
 
-    /** 이미 남긴 평가까지 실어 대화를 내보낸다. 메시지마다 묻지 않도록 평가는 한 번에 읽는다. */
+    /** 이미 남긴 평가와 북마크까지 실어 대화를 내보낸다. 메시지마다 묻지 않도록 둘 다 한 번에 읽는다. */
     private ConversationResponse toResponse(Conversation conversation) {
         List<Long> messageIds = conversation.getMessages().stream()
                 .map(Message::getId)
@@ -162,7 +167,11 @@ public class ConversationService {
                 .map(MessageFeedbackResponse::from)
                 .collect(Collectors.toMap(MessageFeedbackResponse::messageId, Function.identity()));
 
-        return ConversationResponse.from(conversation, feedbacks);
+        Set<Long> bookmarked = bookmarkRepository.findByMessage_IdIn(messageIds).stream()
+                .map(bookmark -> bookmark.getMessage().getId())
+                .collect(Collectors.toSet());
+
+        return ConversationResponse.from(conversation, feedbacks, bookmarked);
     }
 
     private String toTitle(String aiTitle, String query) {

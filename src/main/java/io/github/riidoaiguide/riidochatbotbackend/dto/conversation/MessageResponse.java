@@ -15,6 +15,7 @@ import java.util.Locale;
  * 그때는 content(평문)로 그린다.
  *
  * <p>feedback은 이 답변에 이미 남긴 좋아요/싫어요다. 평가하지 않았으면 null이다.
+ * bookmarked는 이 메시지를 담아 뒀는지 여부다.
  */
 public record MessageResponse(
         Long id,
@@ -29,9 +30,11 @@ public record MessageResponse(
         List<SectionResponse> sections,
         // 이미 남긴 평가. 평가 전이면 null
         MessageFeedbackResponse feedback,
+        // 담아 둔(북마크한) 메시지인지
+        boolean bookmarked,
         Instant createdAt
 ) {
-    public static MessageResponse from(Message message, MessageFeedbackResponse feedback) {
+    public static MessageResponse from(Message message, MessageFeedbackResponse feedback, boolean bookmarked) {
         return new MessageResponse(
                 message.getId(),
                 message.getRole().name().toLowerCase(Locale.ROOT),
@@ -42,6 +45,7 @@ public record MessageResponse(
                 message.getQuestionId(),
                 message.getSections().stream().map(SectionResponse::from).toList(),
                 feedback,
+                bookmarked,
                 message.getCreatedAt()
         );
     }

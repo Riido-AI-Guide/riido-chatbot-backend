@@ -80,6 +80,10 @@ public class Message {
         return id;
     }
 
+    public Conversation getConversation() {
+        return conversation;
+    }
+
     public Role getRole() {
         return role;
     }
