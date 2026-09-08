@@ -61,8 +61,7 @@ public class ConversationService {
             userRepository.findById(userId).ifPresent(conversation::assignUser);
         }
 
-        conversation.addQuestion(query);
-        addAnswer(conversation, ai);
+        addAnswer(conversation, conversation.addQuestion(query), ai);
 
         conversationRepository.save(conversation);
         conversationRepository.flush();
@@ -82,19 +81,20 @@ public class ConversationService {
 
         // 대화 제목은 그대로 둔다. 후속 턴의 title은 이번 답변에 붙는 말풍선 제목일 뿐이라
         // 이것으로 덮어쓰면 대화 제목이 매 턴 바뀐다.
-        conversation.addQuestion(query);
-        addAnswer(conversation, ai);
+        addAnswer(conversation, conversation.addQuestion(query), ai);
         conversationRepository.flush();
 
         return ConversationResponse.from(conversation);
     }
 
-    /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. */
-    private void addAnswer(Conversation conversation, AskResponse ai) {
+    /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. 답한 질문(question)을 함께 걸어 둔다. */
+    private void addAnswer(Conversation conversation, Message question, AskResponse ai) {
         Message answer = conversation.addAnswer(
+                question,
                 ai.answerText(),
                 blankToNull(cut(ai.title(), MAX_TITLE_LENGTH)),
-                ai.answerType()
+                ai.answerType(),
+                blankToNull(ai.qnaUuid())
         );
 
         for (AnswerSectionDto section : ai.answers()) {

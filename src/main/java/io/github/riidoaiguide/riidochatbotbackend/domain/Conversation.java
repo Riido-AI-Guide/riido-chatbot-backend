@@ -38,19 +38,21 @@ public class Conversation {
         this.createdAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
-    /** 사용자 질문. 제목·섹션은 답변에만 있으므로 비워 둔다. */
+    /** 사용자 질문. 제목·섹션·qnaUuid는 답변에만 있으므로 비워 둔다. */
     public Message addQuestion(String content) {
-        return add(new Message(this, Role.USER, content, null, null));
+        return add(new Message(this, Role.USER, content, null, null, null, null));
     }
 
     /**
-     * AI 답변. 이 턴의 제목과 유형까지 함께 남긴다.
+     * AI 답변. 이 턴의 제목·유형·식별자와 답한 질문까지 함께 남긴다.
      * 섹션은 반환된 Message에 addSection으로 붙인다.
      *
      * <p>여기 title은 이 답변 말풍선의 제목일 뿐이다 — 대화 제목(Conversation.title)은 건드리지 않는다.
+     *
+     * @param question 이 답변이 답한 질문 메시지 (addQuestion이 돌려준 것)
      */
-    public Message addAnswer(String content, String title, String answerType) {
-        return add(new Message(this, Role.ASSISTANT, content, title, answerType));
+    public Message addAnswer(Message question, String content, String title, String answerType, String qnaUuid) {
+        return add(new Message(this, Role.ASSISTANT, content, title, answerType, qnaUuid, question));
     }
 
     private Message add(Message message) {
