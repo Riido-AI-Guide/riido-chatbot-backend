@@ -10,7 +10,10 @@ import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.SourceRefDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
+import io.github.riidoaiguide.riidochatbotbackend.dto.feedback.MessageFeedbackResponse;
 import io.github.riidoaiguide.riidochatbotbackend.repository.ConversationRepository;
+import io.github.riidoaiguide.riidochatbotbackend.repository.MessageBookmarkRepository;
+import io.github.riidoaiguide.riidochatbotbackend.repository.MessageFeedbackRepository;
 import io.github.riidoaiguide.riidochatbotbackend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,15 +43,21 @@ public class ConversationService {
     private final ChatService chatService;
     private final ConversationRepository conversationRepository;
     private final UserRepository userRepository;
+    private final MessageFeedbackRepository feedbackRepository;
+    private final MessageBookmarkRepository bookmarkRepository;
 
     public ConversationService(
             ChatService chatService,
             ConversationRepository conversationRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            MessageFeedbackRepository feedbackRepository,
+            MessageBookmarkRepository bookmarkRepository
     ) {
         this.chatService = chatService;
         this.conversationRepository = conversationRepository;
         this.userRepository = userRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.bookmarkRepository = bookmarkRepository;
     }
 
     @Transactional
@@ -61,8 +74,7 @@ public class ConversationService {
             userRepository.findById(userId).ifPresent(conversation::assignUser);
         }
 
-        conversation.addQuestion(query);
-        addAnswer(conversation, ai);
+        addAnswer(conversation, conversation.addQuestion(query), ai);
 
         conversationRepository.save(conversation);
         conversationRepository.flush();
@@ -82,19 +94,20 @@ public class ConversationService {
 
         // 대화 제목은 그대로 둔다. 후속 턴의 title은 이번 답변에 붙는 말풍선 제목일 뿐이라
         // 이것으로 덮어쓰면 대화 제목이 매 턴 바뀐다.
-        conversation.addQuestion(query);
-        addAnswer(conversation, ai);
+        addAnswer(conversation, conversation.addQuestion(query), ai);
         conversationRepository.flush();
 
-        return ConversationResponse.from(conversation);
+        return toResponse(conversation);
     }
 
-    /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. */
-    private void addAnswer(Conversation conversation, AskResponse ai) {
+    /** AI 답변을 제목·섹션·근거까지 그대로 대화에 남긴다. 답한 질문(question)을 함께 걸어 둔다. */
+    private void addAnswer(Conversation conversation, Message question, AskResponse ai) {
         Message answer = conversation.addAnswer(
+                question,
                 ai.answerText(),
                 blankToNull(cut(ai.title(), MAX_TITLE_LENGTH)),
-                ai.answerType()
+                ai.answerType(),
+                blankToNull(ai.qnaUuid())
         );
 
         for (AnswerSectionDto section : ai.answers()) {
@@ -139,9 +152,26 @@ public class ConversationService {
     @Transactional(readOnly = true)
     public ConversationResponse detail(Long conversationId) {
         return conversationRepository.findById(conversationId)
-                .map(ConversationResponse::from)
+                .map(this::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 대화입니다: " + conversationId));
+    }
+
+    /** 이미 남긴 평가와 북마크까지 실어 대화를 내보낸다. 메시지마다 묻지 않도록 둘 다 한 번에 읽는다. */
+    private ConversationResponse toResponse(Conversation conversation) {
+        List<Long> messageIds = conversation.getMessages().stream()
+                .map(Message::getId)
+                .toList();
+
+        Map<Long, MessageFeedbackResponse> feedbacks = feedbackRepository.findByMessage_IdIn(messageIds).stream()
+                .map(MessageFeedbackResponse::from)
+                .collect(Collectors.toMap(MessageFeedbackResponse::messageId, Function.identity()));
+
+        Set<Long> bookmarked = bookmarkRepository.findByMessage_IdIn(messageIds).stream()
+                .map(bookmark -> bookmark.getMessage().getId())
+                .collect(Collectors.toSet());
+
+        return ConversationResponse.from(conversation, feedbacks, bookmarked);
     }
 
     private String toTitle(String aiTitle, String query) {

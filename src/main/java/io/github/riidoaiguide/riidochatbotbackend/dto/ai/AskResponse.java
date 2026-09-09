@@ -12,6 +12,9 @@ import java.util.stream.Collectors;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record AskResponse(
+        // 이 턴의 식별자. AI가 답변을 자동 채점한 결과가 이 값에 붙으므로 메시지와 함께 저장한다.
+        // 백엔드가 발급하는 메시지 id와는 다른 값이다.
+        @JsonProperty("qna_uuid") String qnaUuid,
         @JsonProperty("raw_query") String rawQuery,
         @JsonProperty("cleaned_query") String cleanedQuery,
         @JsonProperty("needs_search") boolean needsSearch,

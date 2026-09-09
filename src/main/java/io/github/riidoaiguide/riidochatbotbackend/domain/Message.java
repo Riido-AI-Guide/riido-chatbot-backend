@@ -29,13 +29,23 @@ public class Message {
     @Column(nullable = false, columnDefinition = "text")
     private String content;
 
-    // 아래 셋은 assistant 답변에만 있다. 사용자 메시지와 섹션 저장 이전의 답변은 비어 있다.
+    // 아래 넷은 assistant 답변에만 있다. 사용자 메시지와 섹션 저장 이전의 답변은 비어 있다.
     @Column(length = 200)
     private String title;
 
     // AI가 준 답변 유형(step, no_answer …). 유형이 늘어날 수 있어 enum으로 굳히지 않는다.
     @Column(name = "answer_type", length = 30)
     private String answerType;
+
+    // AI가 이 턴에 붙인 식별자(UUID). AI가 답변을 자동 채점한 결과가 이 값에 달리므로,
+    // 나중에 사용자 good/bad와 대조하거나 대화 삭제 시 품질 로그를 함께 정리할 때 조인 키가 된다.
+    @Column(name = "qna_uuid", length = 64)
+    private String qnaUuid;
+
+    // 이 답변이 답한 질문 메시지. 답변에만 있고 질문 자신은 비어 있다.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_message_id")
+    private Message question;
 
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
@@ -48,12 +58,15 @@ public class Message {
     protected Message() {
     }
 
-    Message(Conversation conversation, Role role, String content, String title, String answerType) {
+    Message(Conversation conversation, Role role, String content, String title, String answerType,
+            String qnaUuid, Message question) {
         this.conversation = conversation;
         this.role = role;
         this.content = content;
         this.title = title;
         this.answerType = answerType;
+        this.qnaUuid = qnaUuid;
+        this.question = question;
         this.createdAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -65,6 +78,10 @@ public class Message {
 
     public Long getId() {
         return id;
+    }
+
+    public Conversation getConversation() {
+        return conversation;
     }
 
     public Role getRole() {
@@ -81,6 +98,19 @@ public class Message {
 
     public String getAnswerType() {
         return answerType;
+    }
+
+    public String getQnaUuid() {
+        return qnaUuid;
+    }
+
+    public Message getQuestion() {
+        return question;
+    }
+
+    /** 답변이 참조하는 질문 메시지의 id. 질문 메시지에서는 null. */
+    public Long getQuestionId() {
+        return question == null ? null : question.getId();
     }
 
     public List<AnswerSection> getSections() {
