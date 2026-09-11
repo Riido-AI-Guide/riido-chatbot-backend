@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  APP_NAME: rag-backend
+  APP_NAME: rag-backend-v2
   RESOURCE_GROUP: rag-rg
 
 jobs:
