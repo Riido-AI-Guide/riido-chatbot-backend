@@ -1,0 +1,26 @@
+# 로컬 DB 접속 정보 — 이미지(jar)에 절대 들어가면 안 된다
+**/application-local.yaml
+
+# 빌드 산출물 / 캐시 (컨테이너 안에서 새로 빌드한다)
+build/
+out/
+.gradle/
+bin/
+
+# VCS / IDE / 도구 설정
+.git/
+.github/
+.idea/
+.vscode/
+.claude/
+.mcp.json
+*.iml
+*.iws
+*.ipr
+
+# 문서
+*.md
+
+# Docker 자체
+Dockerfile
+.dockerignore
