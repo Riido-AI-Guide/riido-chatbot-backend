@@ -3,6 +3,7 @@ package io.github.riidoaiguide.riidochatbotbackend.controller;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationCreateRequest;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.ConversationSummaryResponse;
+import io.github.riidoaiguide.riidochatbotbackend.dto.conversation.MessageCreateRequest;
 import io.github.riidoaiguide.riidochatbotbackend.service.ConversationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,7 @@ public class ConversationController {
     @PostMapping("/{conversationId}/messages")
     public ConversationResponse append(
             @PathVariable Long conversationId,
-            @Valid @RequestBody ConversationCreateRequest request
+            @Valid @RequestBody MessageCreateRequest request
     ) {
         return conversationService.append(conversationId, request.query());
     }

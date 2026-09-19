@@ -4,6 +4,7 @@ import io.github.riidoaiguide.riidochatbotbackend.domain.AnswerSection;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Conversation;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Message;
 import io.github.riidoaiguide.riidochatbotbackend.domain.Role;
+import io.github.riidoaiguide.riidochatbotbackend.domain.User;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AnswerSectionDto;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.AskResponse;
 import io.github.riidoaiguide.riidochatbotbackend.dto.ai.ConversationTurnDto;
@@ -62,17 +63,17 @@ public class ConversationService {
 
     @Transactional
     public ConversationResponse create(String query, Long userId) {
+        // 사용자를 먼저 확인한다. 모르는 userId면 여기서 끊어야 AI를 헛되이 부르지 않는다.
+        // 예전에는 연결 없이 저장했지만, 주인 없는 대화는 목록 조회에 걸리지 않아 그대로 잃어버렸다.
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "존재하지 않는 사용자입니다: " + userId));
+
         AskResponse ai = chatService.ask(query);
 
         // 대화 제목은 AI가 이번 턴에 붙인 title을 쓴다. 첫 턴이면 비어 오지 않지만,
         // 그래도 비면 질문 원문으로 대신한다 (제목 없는 대화를 만들지 않기 위해).
-        Conversation conversation = new Conversation(toTitle(ai.title(), query));
-
-        // 로그인한 사용자가 보낸 요청이면 대화에 작성자를 연결한다.
-        // 모르는 userId면 연결 없이 저장한다 (대화 자체를 잃는 것보다 낫다).
-        if (userId != null) {
-            userRepository.findById(userId).ifPresent(conversation::assignUser);
-        }
+        Conversation conversation = new Conversation(toTitle(ai.title(), query), user);
 
         addAnswer(conversation, conversation.addQuestion(query), ai);
 

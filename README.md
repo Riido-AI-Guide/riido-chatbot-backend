@@ -61,8 +61,10 @@ cp src/main/resources/application-local.yaml.example src/main/resources/applicat
 요청
 
 ```json
-{ "query": "ERD 먼저 짜는 게 나을까?" }
+{ "query": "ERD 먼저 짜는 게 나을까?", "userId": 3 }
 ```
+
+`userId`는 필수입니다. 주인 없는 대화는 목록(`GET /conversations?userId=`)에 걸리지 않아 그대로 잃어버리기 때문입니다. 없으면 `400`, 모르는 `userId`면 `404`를 반환합니다.
 
 응답 (`201`, `Location: /conversations/{conversationId}`)
 
@@ -79,7 +81,7 @@ cp src/main/resources/application-local.yaml.example src/main/resources/applicat
 
 - `title`은 최초 질문(최대 200자)입니다.
 - `createdAt`은 UTC ISO-8601(초 단위)입니다.
-- `query`가 비어 있으면 `400`, AI 서버 호출에 실패하면 `500`을 반환합니다.
+- `query`가 비어 있거나 `userId`가 없으면 `400`, AI 서버 호출에 실패하면 `500`을 반환합니다.
 
 ### `POST /api/chat`
 
