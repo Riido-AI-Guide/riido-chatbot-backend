@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "conversations")
@@ -51,7 +52,7 @@ public class Conversation {
      *
      * @param question 이 답변이 답한 질문 메시지 (addQuestion이 돌려준 것)
      */
-    public Message addAnswer(Message question, String content, String title, String answerType, String qnaUuid) {
+    public Message addAnswer(Message question, String content, String title, String answerType, UUID qnaUuid) {
         return add(new Message(this, Role.ASSISTANT, content, title, answerType, qnaUuid, question));
     }
 

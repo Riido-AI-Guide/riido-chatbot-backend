@@ -6,6 +6,7 @@ import io.github.riidoaiguide.riidochatbotbackend.dto.feedback.MessageFeedbackRe
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * 대화 속 메시지 한 건.
@@ -24,7 +25,7 @@ public record MessageResponse(
         String title,
         String answerType,
         // AI가 이 턴에 붙인 식별자. 사용자 good/bad 평가를 AI 품질 로그와 대조할 때 쓴다
-        String qnaUuid,
+        UUID qnaUuid,
         // 이 답변이 답한 질문 메시지의 id. 질문 메시지에서는 null
         Long questionId,
         List<SectionResponse> sections,

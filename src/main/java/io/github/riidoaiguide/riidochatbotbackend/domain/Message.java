@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "messages")
@@ -39,8 +40,9 @@ public class Message {
 
     // AI가 이 턴에 붙인 식별자(UUID). AI가 답변을 자동 채점한 결과가 이 값에 달리므로,
     // 나중에 사용자 good/bad와 대조하거나 대화 삭제 시 품질 로그를 함께 정리할 때 조인 키가 된다.
-    @Column(name = "qna_uuid", length = 64)
-    private String qnaUuid;
+    // AI 쪽 qna_logs.qna_uuid가 uuid 타입이라 여기도 uuid로 맞춘다 — 캐스팅 없이 그대로 조인된다.
+    @Column(name = "qna_uuid", columnDefinition = "uuid")
+    private UUID qnaUuid;
 
     // 이 답변이 답한 질문 메시지. 답변에만 있고 질문 자신은 비어 있다.
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,7 +61,7 @@ public class Message {
     }
 
     Message(Conversation conversation, Role role, String content, String title, String answerType,
-            String qnaUuid, Message question) {
+            UUID qnaUuid, Message question) {
         this.conversation = conversation;
         this.role = role;
         this.content = content;
@@ -100,7 +102,7 @@ public class Message {
         return answerType;
     }
 
-    public String getQnaUuid() {
+    public UUID getQnaUuid() {
         return qnaUuid;
     }
 

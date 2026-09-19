@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 /**
  * 답변 한 건에 대한 사용자 평가. 메시지당 한 행이며, 두 번에 나뉘어 채워진다.
@@ -30,8 +31,8 @@ public class MessageFeedback {
     // 평가한 답변의 qna_uuid를 그대로 복사해 둔다. AI 품질 로그와 대조할 때 쓰는 값이라
     // 메시지를 타고 들어가지 않고 여기서 바로 읽을 수 있게 둔다.
     // 섹션 저장 이전에 쌓인 옛 답변에는 없으므로 비어 있을 수 있다.
-    @Column(name = "qna_uuid", length = 64)
-    private String qnaUuid;
+    @Column(name = "qna_uuid", columnDefinition = "uuid")
+    private UUID qnaUuid;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
@@ -82,7 +83,7 @@ public class MessageFeedback {
         return message;
     }
 
-    public String getQnaUuid() {
+    public UUID getQnaUuid() {
         return qnaUuid;
     }
 

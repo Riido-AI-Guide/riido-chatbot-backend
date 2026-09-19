@@ -107,7 +107,7 @@ public class ConversationService {
                 ai.answerText(),
                 blankToNull(cut(ai.title(), MAX_TITLE_LENGTH)),
                 ai.answerType(),
-                blankToNull(ai.qnaUuid())
+                ai.qnaUuid()
         );
 
         for (AnswerSectionDto section : ai.answers()) {

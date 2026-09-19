@@ -34,6 +34,19 @@ cp src/main/resources/application-local.yaml.example src/main/resources/applicat
 
 서버는 `http://localhost:8080`에서 뜹니다. (`local` 프로파일이 기본 활성화)
 
+## DB 마이그레이션
+
+스키마는 아직 `ddl-auto: update`가 만듭니다. 컬럼을 새로 추가하는 변경은 알아서 반영되지만,
+**이미 있는 컬럼의 타입을 바꾸는 변경은 Hibernate가 해 주지 않으므로** `db/migration/`의 SQL을 한 번 직접 돌려야 합니다.
+
+| 스크립트 | 내용 | 언제 |
+|---|---|---|
+| `db/migration/2026-09-19__qna_uuid_to_uuid.sql` | `messages.qna_uuid`·`message_feedbacks.qna_uuid`를 `varchar(64)` → `uuid`로 변경 | 이 변경을 배포하기 **전에** 한 번 |
+
+- 기존 DB(로컬·운영 공용 Supabase)에만 필요합니다. DB를 새로 만들면 Hibernate가 처음부터 `uuid`로 만듭니다.
+- 두 번 돌려도 안전합니다 — 이미 `uuid`면 건너뜁니다.
+- Supabase 대시보드의 SQL Editor에 붙여넣거나, `psql "<접속 문자열>" -f db/migration/2026-09-19__qna_uuid_to_uuid.sql`로 돌립니다.
+
 ## 참고
 
 - AI 서버 주소는 `application.yaml`의 `app.ai.base-url`에서 설정합니다. 기본값은 `http://localhost:8000`이며, 챗봇 API를 호출하려면 AI 서버가 함께 실행 중이어야 합니다.

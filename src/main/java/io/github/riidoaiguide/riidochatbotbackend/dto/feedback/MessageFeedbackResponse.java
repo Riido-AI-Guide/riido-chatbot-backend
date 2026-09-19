@@ -5,6 +5,7 @@ import io.github.riidoaiguide.riidochatbotbackend.domain.FeedbackReason;
 import io.github.riidoaiguide.riidochatbotbackend.domain.MessageFeedback;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * 저장된 평가. 평가 API의 응답이자, 대화 상세의 메시지마다 실려 나가는 형태이기도 하다
@@ -12,7 +13,7 @@ import java.time.Instant;
  */
 public record MessageFeedbackResponse(
         Long messageId,
-        String qnaUuid,
+        UUID qnaUuid,
         FeedbackRating rating,
         // 상세사유를 고르지 않았으면 둘 다 null
         FeedbackReason reason,
